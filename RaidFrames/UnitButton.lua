@@ -1202,10 +1202,21 @@ local function HandleDebuff(self, auraInfo)
         UpdateAuraRefreshState(auraInfo)
         self._debuffs_cache[auraInstanceID] = auraInfo
 
-        if enabledIndicators["debuffs"] and not Cell.vars.debuffBlacklist[spellId] then
+        -- On Midnight in restricted context, spellId may be secret — can't use as table key
+        -- Use F.IsAuraRestricted() to choose code path at runtime
+        local isBig = false
+        local isBlacklisted = false
+        local isDispelBlacklisted = false
+        if not Cell.isMidnight or not F.IsAuraRestricted() then
+            isBig = spellId and Cell.vars.bigDebuffs[spellId] or false
+            isBlacklisted = spellId and Cell.vars.debuffBlacklist[spellId] or false
+            isDispelBlacklisted = spellId and Cell.vars.dispelBlacklist[spellId] or false
+        end
+
+        if enabledIndicators["debuffs"] and not isBlacklisted then
             -- all debuffs / only dispellableByMe
             if not indicatorBooleans["debuffs"] or I.CanDispel(debuffType) then
-                if Cell.vars.bigDebuffs[spellId] then
+                if isBig then
                     self._debuffs_big[auraInstanceID] = true
                 else
                     self._debuffs_normal[auraInstanceID] = true
@@ -1236,7 +1247,7 @@ local function HandleDebuff(self, auraInfo)
             -- all dispels / only dispellableByMe
             if not indicatorBooleans ["dispels"]["dispellableByMe"] or I.CanDispel(debuffType) then
                 if indicatorBooleans["dispels"][debuffType] then
-                    if Cell.vars.dispelBlacklist[spellId] then
+                    if isDispelBlacklisted then
                         -- no highlight
                         self._debuffs_dispel[debuffType] = false
                     else
