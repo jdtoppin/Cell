@@ -111,7 +111,8 @@ local function SanitizeAura(aura)
         t.spellId = aura.spellId and (aura.spellId + 0)
         t.auraInstanceID = aura.auraInstanceID and (aura.auraInstanceID + 0)
         t.sourceUnit = aura.sourceUnit
-        t.dispelName = aura.dispelName
+        -- Use a safer way to copy dispelName to handle WoW 12.0 secret values
+        t.dispelName = type(aura.dispelName) == "string" and aura.dispelName or ""
         t.isHelpful = aura.isHelpful and true or false
         t.isHarmful = aura.isHarmful and true or false
         t.isBossAura = aura.isBossAura and true or false
@@ -130,7 +131,13 @@ local function SanitizeAura(aura)
         t.oldApplications = aura.oldApplications
         return t
     end)
-    if not ok then return nil end
+    if not ok then
+        -- Log error for debugging WoW 12.0 secret value issues
+        if Cell and Cell.vars.debugEnabled then
+            Cell:Print("SanitizeAura error: " .. tostring(clean))
+        end
+        return nil
+    end
     return clean
 end
 
@@ -1421,6 +1428,13 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
 
     -- update dispels
     if F.UnitInGroup(unit) or UnitIsFriend("player", unit) then
+        -- Debug logging for WoW 12.0 secret value issues
+        if Cell and Cell.vars.debugEnabled then
+            Cell:Print(string.format("UpdateAuras: Updating dispels for unit %s, count: %d", unit, #self._debuffs_dispel))
+            for i, dispel in ipairs(self._debuffs_dispel) do
+                Cell:Print(string.format("  Dispel %d: %s", i, dispel))
+            end
+        end
         self.indicators.dispels:SetDispels(self._debuffs_dispel)
     end
 
