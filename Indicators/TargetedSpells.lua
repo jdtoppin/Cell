@@ -68,23 +68,19 @@ local function GetCastsOnUnit(guid)
         if guid == castInfo["targetGUID"] then
             if castInfo["endTime"] > GetTime() then -- not expired
                 local spellId = castInfo["spellId"]
-                -- Midnight 12.0.0+: spellId may be secret — can't use as table key
-                local isSecret = Cell.isMidnight and issecretvalue and issecretvalue(spellId)
-                if not isSecret then
-                    if not castsOnUnit[guid][spellId] then
-                        castsOnUnit[guid][spellId] = {["count"] = 0}
-                    end
-                    if not castsOnUnit[guid][spellId]["endTime"] or castsOnUnit[guid][spellId]["endTime"] > castInfo["endTime"] then --! shorter duration
-                        castsOnUnit[guid][spellId]["startTime"] = castInfo["startTime"]
-                        castsOnUnit[guid][spellId]["endTime"] = castInfo["endTime"]
-                        castsOnUnit[guid][spellId]["icon"] = castInfo["icon"]
-                    end
-                    castsOnUnit[guid][spellId]["count"] = castsOnUnit[guid][spellId]["count"] + 1
+                if not castsOnUnit[guid][spellId] then
+                    castsOnUnit[guid][spellId] = {["count"] = 0}
+                end
+                if not castsOnUnit[guid][spellId]["endTime"] or castsOnUnit[guid][spellId]["endTime"] > castInfo["endTime"] then --! shorter duration
+                    castsOnUnit[guid][spellId]["startTime"] = castInfo["startTime"]
+                    castsOnUnit[guid][spellId]["endTime"] = castInfo["endTime"]
+                    castsOnUnit[guid][spellId]["icon"] = castInfo["icon"]
+                end
+                castsOnUnit[guid][spellId]["count"] = castsOnUnit[guid][spellId]["count"] + 1
 
-                    if Cell.vars.targetedSpellsList[spellId] then
-                        castsOnUnit[guid][spellId]["inList"] = true
-                        inListFound = true
-                    end
+                if Cell.vars.targetedSpellsList[spellId] then
+                    castsOnUnit[guid][spellId]["inList"] = true
+                    inListFound = true
                 end
             else
                 casts[sourceGUID] = nil
@@ -180,10 +176,7 @@ local function CheckUnitCast(sourceUnit, isRecheck)
 
     -- print(sourceUnit, name, spellId)
 
-    -- Midnight 12.0.0+: spellId may be secret in restricted context
-    -- Only perform lookup if spellId is not secret, or use showAllSpells
-    local isSecret = Cell.isMidnight and issecretvalue and issecretvalue(spellId)
-    if spellId and (not isSecret and Cell.vars.targetedSpellsList[spellId] or showAllSpells) then
+    if spellId and (Cell.vars.targetedSpellsList[spellId] or showAllSpells) then
         if casts[sourceGUID] then
             casts[sourceGUID]["startTime"] = startTimeMS/1000
             casts[sourceGUID]["endTime"] = endTimeMS/1000
