@@ -1202,6 +1202,11 @@ local function HandleDebuff(self, auraInfo)
 
     auraInfo.refreshing = false
 
+    if Cell and Cell.vars.debugEnabled then
+        Cell:Print(string.format("HandleDebuff: unit=%s, spellId=%d, name=%s, dispelType=%s",
+            tostring(self.states.displayedUnit), spellId or 0, name or "unknown", debuffType))
+    end
+
     -- check Bleed
     debuffType = I.CheckDebuffType(debuffType, spellId)
 
@@ -1286,6 +1291,10 @@ local RAID_DEBUFFS_GLOW_TYPES = {"Normal", "Pixel", "Shine", "Proc"}
 
 local function UnitButton_UpdateDebuffs(self, isFullUpdate)
     local unit = self.states.displayedUnit
+
+    if Cell and Cell.vars.debugEnabled then
+        Cell:Print("UnitButton_UpdateDebuffs CALLED for " .. tostring(self:GetName()) .. ", isFullUpdate = " .. tostring(isFullUpdate))
+    end
 
     ResetDebuffVars(self)
     I.ResetCustomIndicators(self, "debuff")
@@ -1427,6 +1436,16 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
     end
 
     -- update dispels
+    if Cell and Cell.vars.debugEnabled then
+        local dispelStr = "{"
+        for k, v in pairs(self._debuffs_dispel) do
+            dispelStr = dispelStr .. k .. "=" .. tostring(v) .. ", "
+        end
+        dispelStr = dispelStr .. "}"
+        Cell:Print(string.format("UpdateAuras: Checking dispels for unit %s, inGroup=%s, isFriend=%s, table=%s",
+            unit, tostring(F.UnitInGroup(unit)), tostring(UnitIsFriend("player", unit)), dispelStr))
+    end
+
     if F.UnitInGroup(unit) or UnitIsFriend("player", unit) then
         -- Debug logging for WoW 12.0 secret value issues
         if Cell and Cell.vars.debugEnabled then
@@ -1436,6 +1455,10 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
             end
         end
         self.indicators.dispels:SetDispels(self._debuffs_dispel)
+    else
+        if Cell and Cell.vars.debugEnabled then
+            Cell:Print("UpdateAuras: Dispels SKIPPED - unit not in group and not friend")
+        end
     end
 
     -- update crowdControls
@@ -1743,12 +1766,29 @@ end)
 -- functions
 -------------------------------------------------
 UnitButton_UpdateAuras = function(self, updateInfo)
-    if not self._indicatorsReady then return end
+    -- Debug logging to track if function is called during combat
+    if Cell and Cell.vars.debugEnabled then
+        Cell:Print("UnitButton_UpdateAuras CALLED for " .. tostring(self:GetName()))
+    end
+
+    if not self._indicatorsReady then
+        if Cell and Cell.vars.debugEnabled then
+            Cell:Print("UnitButton_UpdateAuras EARLY RETURN: _indicatorsReady not set")
+        end
+        return end
 
     local unit = self.states.displayedUnit
-    if not unit then return end
+    if not unit then
+        if Cell and Cell.vars.debugEnabled then
+            Cell:Print("UnitButton_UpdateAuras EARLY RETURN: no unit")
+        end
+        return end
 
     local isFullUpdate = not updateInfo or updateInfo.isFullUpdate
+
+    if Cell and Cell.vars.debugEnabled then
+        Cell:Print("UnitButton_UpdateAuras: isFullUpdate = " .. tostring(isFullUpdate) .. ", unit = " .. unit)
+    end
 
     if isFullUpdate then
         -- full update
