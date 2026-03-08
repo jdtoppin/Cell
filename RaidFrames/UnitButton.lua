@@ -3107,6 +3107,8 @@ local function UnitButton_OnEvent(self, event, unit, arg)
 
         elseif event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_REGEN_DISABLED" then
             UnitButton_UpdateLeader(self, event)
+            -- Update auras when combat starts/stops to ensure debuffs/dispels are processed
+            UnitButton_UpdateAuras(self)
 
         elseif event == "PLAYER_TARGET_CHANGED" then
             UnitButton_UpdateTarget(self)
