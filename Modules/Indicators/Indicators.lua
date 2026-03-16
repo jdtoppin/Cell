@@ -128,16 +128,42 @@ end
 -- indicator preview onupdate
 local function SetOnUpdate(indicator, type, icon, stack, extra)
     indicator.preview = indicator.preview or CreateFrame("Frame", nil, indicator)
+    -- Midnight BorderIcon preview: use reversed swipe so the colored border
+    -- is visible as base and black fills in (matches in-game SetCooldownFromAura).
+    local isMidnightBorderIcon = Cell.isMidnight and indicator.cooldown
+        and indicator.cooldown._SetCooldown and not indicator.cooldown.SetMinMaxValues
+    local function doPreview()
+        if isMidnightBorderIcon and not type then
+            -- Buff cooldowns (no debuff type): yellow border base, black swipe fills in
+            indicator.icon:SetTexture(icon)
+            indicator.stack:SetText(stack and stack > 1 and stack or "")
+            -- Yellow border as base color
+            if indicator.border then
+                indicator.border:SetColorTexture(1, 0.85, 0)
+                indicator.border:Show()
+            end
+            -- Black swipe fills IN (reverse) over the yellow border
+            if indicator.cooldown then
+                indicator.cooldown:SetReverse(true)
+                indicator.cooldown:SetSwipeColor(0, 0, 0)
+                indicator.cooldown:_SetCooldown(GetTime(), 13)
+                indicator.cooldown:Show()
+            end
+            indicator:Show()
+        else
+            indicator:SetCooldown(GetTime(), 13, type, icon, stack or 0, false, extra)
+        end
+    end
     indicator.preview:SetScript("OnUpdate", function(self, elapsed)
         self.elapsedTime = (self.elapsedTime or 0) + elapsed
         if self.elapsedTime >= 13 then
             self.elapsedTime = 0
-            indicator:SetCooldown(GetTime(), 13, type, icon, stack, false, extra)
+            doPreview()
         end
     end)
     indicator:SetScript("OnShow", function()
         indicator.preview.elapsedTime = 0
-        indicator:SetCooldown(GetTime(), 13, type, icon, stack, false, extra)
+        doPreview()
     end)
 end
 
@@ -302,7 +328,7 @@ local function InitIndicator(indicatorName)
         end)
 
     elseif indicatorName == "shieldBar" then
-        indicator:SetValue(0.5)
+        indicator:SetPercent(0.5)
 
     elseif indicatorName == "powerWordShield" then
         indicator:SetScript("OnShow", function()
@@ -1545,7 +1571,7 @@ if Cell.isRetail or Cell.isMists then
         ["nameText"] = {"enabled", "color-class", "textWidth", "checkbutton:showGroupNumber", "vehicleNamePosition", "position", "frameLevel", "font-noOffset"},
         ["statusText"] = {"enabled", "checkbutton:showTimer", "checkbutton2:showBackground", "statusColors", "statusPosition", "frameLevel", "font-noOffset"},
         ["healthText"] = {"|cffff7727"..L["MODERATE CPU USAGE"], "enabled", "healthFormat", "position", "frameLevel", "font-noOffset"},
-        ["powerText"] = {"enabled", "color-power", "powerFormat", "powerTextFilters", "checkbutton:hideIfEmptyOrFull", "position", "frameLevel", "font-noOffset"},
+        ["powerText"] = {"enabled", "color-power", "powerFormat", "powerTextFilters", "position", "frameLevel", "font-noOffset"},
         ["statusIcon"] = {
             -- "|A:dungeonskull:18:18|a "..
             "|TInterface\\LFGFrame\\LFG-Eye:18:18:0:0:512:256:72:120:72:120|t "..
@@ -1573,10 +1599,12 @@ if Cell.isRetail or Cell.isMists then
         ["allCooldowns"] = {"enabled", "durationVisibility", "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["tankActiveMitigation"] = {"|cffb7b7b7"..I.GetTankActiveMitigationString(), "enabled", "color-class", "size", "position", "frameLevel"},
         ["dispels"] = {"enabled", "dispelFilters", "highlightType", "dispelBlacklist", "iconStyle", "orientation", "size-square", "position", "frameLevel"},
-        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "debuffBlacklist", "bigDebuffs", "durationVisibility", "checkbutton2:showAnimation", "checkbutton3:showTooltip:"..DEBUFFS_TOOLTIP1, "checkbutton4:enableBlacklistShortcut:"..DEBUFFS_TOOLTIP2, "size-normal-big", "num:10", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
-        ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "checkbutton:onlyShowTopGlow", "durationVisibility", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
+        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "debuffBlacklist", "bigDebuffs", "checkbutton2:showAnimation", "checkbutton3:showTooltip:"..DEBUFFS_TOOLTIP1, "checkbutton4:enableBlacklistShortcut:"..DEBUFFS_TOOLTIP2, "size-normal-big", "num:10", "orientation", "position", "frameLevel", "font1:stackFont"},
+        ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "checkbutton:onlyShowTopGlow", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont"},
         ["privateAuras"] = {"|cffb7b7b7"..L["Due to restrictions of the private aura system, this indicator can only use Blizzard style."], "enabled", "privateAuraOptions", "size-square", "position", "frameLevel"},
-        ["targetedSpells"] = {"enabled", "checkbutton:showAllSpells:"..L["Glow is only available to the spells in the list below"], "targetedSpellsList", "targetedSpellsGlow", "size-border", "num:3", "orientation", "position", "frameLevel", "font"},
+        ["targetedSpells"] = Cell.isMidnight
+            and {"enabled", "targetedSpellsDisplayMode", "targetedSpellsGlow", "size-border", "num:3", "orientation", "position", "frameLevel", "font"}
+            or {"enabled", "checkbutton:showAllSpells:"..L["Glow is only available to the spells in the list below"], "targetedSpellsDisplayMode", "targetedSpellsList", "targetedSpellsGlow", "size-border", "num:3", "orientation", "position", "frameLevel", "font"},
         ["targetCounter"] = {"|cffff2727"..L["HIGH CPU USAGE"].."!|r |cffb7b7b7"..L["Check all visible enemy nameplates."], "enabled", "targetCounterFilters", "color", "position", "frameLevel", "font-noOffset"},
         ["crowdControls"] = {"enabled", "builtInCrowdControls", "customCrowdControls", "durationVisibility", "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["actions"] = {"|cffb7b7b7"..L["Play animation when the unit uses a specific spell/item. The list is global shared, not layout-specific."], "enabled", "actionsPreview", "actionsList"},
@@ -1593,7 +1621,7 @@ elseif Cell.isCata or Cell.isWrath then
         ["nameText"] = {"enabled", "color-class", "textWidth", "checkbutton:showGroupNumber", "vehicleNamePosition", "position", "frameLevel", "font-noOffset"},
         ["statusText"] = {"enabled", "checkbutton:showTimer", "checkbutton2:showBackground", "statusColors", "statusPosition", "frameLevel", "font-noOffset"},
         ["healthText"] = {"|cffff7727"..L["MODERATE CPU USAGE"], "enabled", "healthFormat", "position", "frameLevel", "font-noOffset"},
-        ["powerText"] = {"enabled", "color-power", "powerFormat", "powerTextFilters", "checkbutton:hideIfEmptyOrFull", "position", "frameLevel", "font-noOffset"},
+        ["powerText"] = {"enabled", "color-power", "powerFormat", "powerTextFilters", "position", "frameLevel", "font-noOffset"},
         ["statusIcon"] = {
             -- "|A:dungeonskull:18:18|a "..
             "|TInterface\\LFGFrame\\LFG-Eye:18:18:0:0:512:256:72:120:72:120|t "..
@@ -1617,9 +1645,9 @@ elseif Cell.isCata or Cell.isWrath then
         ["defensiveCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", "durationVisibility", "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["allCooldowns"] = {"enabled", "durationVisibility", "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["dispels"] = {"enabled", "dispelFilters", "highlightType", "dispelBlacklist", "iconStyle", "orientation", "size-square", "position", "frameLevel"},
-        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "debuffBlacklist", "bigDebuffs", "durationVisibility", "checkbutton2:showAnimation", "checkbutton3:showTooltip:"..DEBUFFS_TOOLTIP1, "checkbutton4:enableBlacklistShortcut:"..DEBUFFS_TOOLTIP2, "size-normal-big", "num:10", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
-        ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "checkbutton:onlyShowTopGlow", "durationVisibility", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
-        ["targetedSpells"] = {"enabled", "checkbutton:showAllSpells:"..L["Glow is only available to the spells in the list below"], "targetedSpellsList", "targetedSpellsGlow", "size-border", "num:3", "orientation", "position", "frameLevel", "font"},
+        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "debuffBlacklist", "bigDebuffs", "checkbutton2:showAnimation", "checkbutton3:showTooltip:"..DEBUFFS_TOOLTIP1, "checkbutton4:enableBlacklistShortcut:"..DEBUFFS_TOOLTIP2, "size-normal-big", "num:10", "orientation", "position", "frameLevel", "font1:stackFont"},
+        ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "checkbutton:onlyShowTopGlow", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont"},
+        ["targetedSpells"] = {"enabled", "checkbutton:showAllSpells:"..L["Glow is only available to the spells in the list below"], "targetedSpellsDisplayMode", "targetedSpellsList", "targetedSpellsGlow", "size-border", "num:3", "orientation", "position", "frameLevel", "font"},
         ["targetCounter"] = {"|cffff2727"..L["HIGH CPU USAGE"].."!|r |cffb7b7b7"..L["Check all visible enemy nameplates."], "enabled", "targetCounterFilters", "color", "position", "frameLevel", "font-noOffset"},
         ["actions"] = {"|cffb7b7b7"..L["Play animation when the unit uses a specific spell/item. The list is global shared, not layout-specific."], "enabled", "actionsPreview", "actionsList"},
         ["healthThresholds"] = {"enabled", "thresholds", "thickness"},
@@ -1630,7 +1658,7 @@ elseif Cell.isVanilla or Cell.isTBC then
         ["nameText"] = {"enabled", "color-class", "textWidth", "checkbutton:showGroupNumber", "vehicleNamePosition", "position", "frameLevel", "font-noOffset"},
         ["statusText"] = {"enabled", "checkbutton:showTimer", "checkbutton2:showBackground", "statusColors", "statusPosition", "frameLevel", "font-noOffset"},
         ["healthText"] = {"|cffff7727"..L["MODERATE CPU USAGE"], "enabled", "healthFormat", "position", "frameLevel", "font-noOffset"},
-        ["powerText"] = {"enabled", "color-power", "powerFormat", "powerTextFilters", "checkbutton:hideIfEmptyOrFull", "position", "frameLevel", "font-noOffset"},
+        ["powerText"] = {"enabled", "color-power", "powerFormat", "powerTextFilters", "position", "frameLevel", "font-noOffset"},
         ["statusIcon"] = {
             -- "|A:dungeonskull:18:18|a "..
             "|TInterface\\LFGFrame\\LFG-Eye:18:18:0:0:512:256:72:120:72:120|t "..
@@ -1653,9 +1681,9 @@ elseif Cell.isVanilla or Cell.isTBC then
         ["defensiveCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", "durationVisibility", "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["allCooldowns"] = {"enabled", "durationVisibility", "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["dispels"] = {"enabled", "dispelFilters", "highlightType", "dispelBlacklist", "iconStyle", "orientation", "size-square", "position", "frameLevel"},
-        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "debuffBlacklist", "bigDebuffs", "durationVisibility", "checkbutton2:showAnimation", "checkbutton3:showTooltip:"..DEBUFFS_TOOLTIP1, "checkbutton4:enableBlacklistShortcut:"..DEBUFFS_TOOLTIP2, "size-normal-big", "num:10", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
-        ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "checkbutton:onlyShowTopGlow", "durationVisibility", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
-        ["targetedSpells"] = {"enabled", "checkbutton:showAllSpells:"..L["Glow is only available to the spells in the list below"], "targetedSpellsList", "targetedSpellsGlow", "size-border", "num:3", "orientation", "position", "frameLevel", "font"},
+        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "debuffBlacklist", "bigDebuffs", "checkbutton2:showAnimation", "checkbutton3:showTooltip:"..DEBUFFS_TOOLTIP1, "checkbutton4:enableBlacklistShortcut:"..DEBUFFS_TOOLTIP2, "size-normal-big", "num:10", "orientation", "position", "frameLevel", "font1:stackFont"},
+        ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell.GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "checkbutton:onlyShowTopGlow", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont"},
+        ["targetedSpells"] = {"enabled", "checkbutton:showAllSpells:"..L["Glow is only available to the spells in the list below"], "targetedSpellsDisplayMode", "targetedSpellsList", "targetedSpellsGlow", "size-border", "num:3", "orientation", "position", "frameLevel", "font"},
         ["targetCounter"] = {"|cffff2727"..L["HIGH CPU USAGE"].."!|r |cffb7b7b7"..L["Check all visible enemy nameplates."], "enabled", "targetCounterFilters", "color", "position", "frameLevel", "font-noOffset"},
         ["actions"] = {"|cffb7b7b7"..L["Play animation when the unit uses a specific spell/item. The list is global shared, not layout-specific."], "enabled", "actionsPreview", "actionsList"},
         ["healthThresholds"] = {"enabled", "thresholds", "thickness"},
@@ -1934,6 +1962,15 @@ local function ShowIndicatorSettings(id)
             w:SetFunc(function(value)
                 CellDB["targetedSpellsList"] = value
                 Cell.vars.targetedSpellsList = F.ConvertTable(CellDB["targetedSpellsList"])
+            end)
+
+        -- targetedSpellsDisplayMode
+        elseif currentSetting == "targetedSpellsDisplayMode" then
+            w:SetDBValue(indicatorTable["displayMode"] or "Both")
+            w:SetFunc(function(value)
+                indicatorTable["displayMode"] = value
+                I.UpdateTargetedSpellsDisplayMode(value)
+                CellIndicatorsPreviewButton.indicators.targetedSpells:ShowGlowPreview()
             end)
 
         -- targetedSpellsGlow
