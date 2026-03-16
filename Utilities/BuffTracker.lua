@@ -349,7 +349,7 @@ local enabled
 local myUnit = ""
 local hasBuffProvider
 
-local fl function Reset(which)
+local function Reset(which)
     if not which or which == "available" then
         for k, v in pairs(available) do
             available[k] = false
