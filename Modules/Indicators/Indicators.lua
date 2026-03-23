@@ -134,11 +134,15 @@ local function SetOnUpdate(indicator, type, icon, stack, extra)
         and indicator.cooldown._SetCooldown and not indicator.cooldown.SetMinMaxValues
     local function doPreview()
         if isMidnightBorderIcon and not type then
-            -- Buff cooldowns (no debuff type): yellow border base, black swipe fills in
+            -- Buff cooldowns (no debuff type): green = player cast, yellow = others
             indicator.icon:SetTexture(icon)
             indicator.stack:SetText(stack and stack > 1 and stack or "")
             if indicator.border then
-                indicator.border:SetColorTexture(1, 0.85, 0)
+                if indicator._isPreviewPlayerCast then
+                    indicator.border:SetColorTexture(0, 0.8, 0)
+                else
+                    indicator.border:SetColorTexture(1, 0.85, 0)
+                end
                 indicator.border:Show()
             end
             if indicator.cooldown then
@@ -563,16 +567,19 @@ local function InitIndicator(indicatorName)
     elseif indicatorName == "externalCooldowns" then
         local icons = {135936, 135964, 135966, 237510, 237542}
         for i = 1, 5 do
+            indicator[i]._isPreviewPlayerCast = (i == 1) -- first icon = "your cast" (green)
             SetOnUpdate(indicator[i], nil, icons[i], 0)
         end
     elseif indicatorName == "defensiveCooldowns" then
         local icons = {135919, 136120, 135841, 132362, 132199}
         for i = 1, 5 do
+            indicator[i]._isPreviewPlayerCast = (i == 1)
             SetOnUpdate(indicator[i], nil, icons[i], 0)
         end
     elseif indicatorName == "allCooldowns" then
         local icons = {135936, 136120, 135966, 132362, 237542}
         for i = 1, 5 do
+            indicator[i]._isPreviewPlayerCast = (i == 1)
             SetOnUpdate(indicator[i], nil, icons[i], 0)
         end
     elseif indicatorName == "missingBuffs" then
@@ -1624,8 +1631,12 @@ if Cell.isRetail or Cell.isMists then
         ["aggroBar"] = {"enabled", "size", "position", "frameLevel"},
         ["shieldBar"] = {"enabled", "checkbutton:onlyShowOvershields", "color-alpha", "height", "shieldBarPosition", "frameLevel"},
         ["aoeHealing"] = {"|cffb7b7b7"..L["Display a gradient texture when the unit receives a heal from your certain healing spells."], "enabled", "builtInAoEHealings", "customAoEHealings", "color", "height"},
-        ["externalCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "customExternals", midnightDurationVisibility, "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
-        ["defensiveCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", midnightDurationVisibility, "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
+        ["externalCooldowns"] = Cell.isMidnight
+            and {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", midnightDurationVisibility, "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont}
+            or {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "customExternals", midnightDurationVisibility, "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
+        ["defensiveCooldowns"] = Cell.isMidnight
+            and {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", midnightDurationVisibility, "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont}
+            or {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", midnightDurationVisibility, "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
         ["allCooldowns"] = {"enabled", midnightDurationVisibility, "checkbutton:showAnimation", "glowOptions", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", midnightDurationFont},
         ["tankActiveMitigation"] = {"|cffb7b7b7"..I.GetTankActiveMitigationString(), "enabled", "color-class", "size", "position", "frameLevel"},
         ["dispels"] = {"enabled", "dispelFilters", "highlightType", "dispelBlacklist", "iconStyle", "orientation", "size-square", "position", "frameLevel"},
