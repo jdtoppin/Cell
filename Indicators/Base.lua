@@ -644,6 +644,10 @@ local function BorderIcon_ShowDuration(frame, show)
     else
         frame.duration:Hide()
     end
+    -- Toggle Blizzard's countdown text on Midnight
+    if Cell.isMidnight and frame.cooldown and frame.cooldown.SetHideCountdownNumbers then
+        frame.cooldown:SetHideCountdownNumbers(not show)
+    end
 end
 
 local function BorderIcon_UpdatePixelPerfect(frame)
