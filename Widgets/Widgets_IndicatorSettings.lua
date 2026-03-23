@@ -1557,7 +1557,9 @@ local function CreateSetting_DurationVisibilitySimple(parent)
         end
 
         function widget:SetDBValue(durationVisibility)
-            -- coerce threshold values to "Always" since they can't work with secrets
+            -- Coerce pre-Midnight threshold values (0.75, 10, etc.) to "Always"
+            -- since Blizzard's countdown text only supports on/off, not thresholds.
+            -- The saved value isn't modified — only the dropdown display is coerced.
             if durationVisibility and durationVisibility ~= false then
                 durationVisibility = true
             end

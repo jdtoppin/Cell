@@ -119,9 +119,11 @@ local function Shared_SetFont(frame, font1, font2)
     I.SetFont(frame.duration, frame, unpack(font2))
     -- Store duration font config for Midnight countdown text on CooldownFrame
     frame._durationFont = font2
-    -- Live-update countdown FontString if it exists
+    -- Live-update countdown FontString if it exists; reset cache flag
     if Cell.isMidnight then
+        frame._countdownFontApplied = false
         ApplyCountdownFont(frame, font2)
+        frame._countdownFontApplied = true
     end
 end
 
@@ -132,10 +134,6 @@ end
 local function Shared_ShowDuration(frame, show)
     frame.showDuration = show
     frame.duration:SetShown(show)
-    -- Toggle Blizzard's countdown text on Midnight BorderIcon
-    if Cell.isMidnight and frame.cooldown and frame.cooldown.SetHideCountdownNumbers then
-        frame.cooldown:SetHideCountdownNumbers(not show)
-    end
 end
 
 -------------------------------------------------
@@ -498,15 +496,14 @@ local function BorderIcon_SetCooldownFromAura(frame, unit, auraInstanceID, textu
     local durObj = _GetAuraDuration and _GetAuraDuration(unit, auraInstanceID)
     if durObj and frame.cooldown and frame.cooldown._SetCooldown
         and frame.cooldown.SetCooldownFromDurationObject then
-        -- Enable Blizzard's countdown text (respects showDuration setting)
-        if frame.showDuration then
-            frame.cooldown:SetHideCountdownNumbers(false)
-            frame.cooldown:SetCountdownAbbrevThreshold(60)
-        end
+        -- Countdown numbers visibility is managed by BorderIcon_ShowDuration
         frame.cooldown:SetReverse(true)
         frame.cooldown:SetCooldownFromDurationObject(durObj, true)
-        -- Apply font settings to countdown text
-        ApplyCountdownFont(frame, frame._durationFont)
+        -- Apply font settings once (cached via _countdownFontApplied flag)
+        if not frame._countdownFontApplied then
+            ApplyCountdownFont(frame, frame._durationFont)
+            frame._countdownFontApplied = true
+        end
         -- Keep border visible as base color (caller sets color); black swipe fills over it
         frame.cooldown:Show()
     else
@@ -639,14 +636,18 @@ end
 
 local function BorderIcon_ShowDuration(frame, show)
     frame.showDuration = show
-    if show then
-        frame.duration:Show()
-    else
-        frame.duration:Hide()
-    end
-    -- Toggle Blizzard's countdown text on Midnight
     if Cell.isMidnight and frame.cooldown and frame.cooldown.SetHideCountdownNumbers then
+        -- Midnight: Cell's duration text is always hidden (produces invisible output
+        -- with secrets). Only toggle Blizzard's built-in countdown.
+        frame.duration:Hide()
         frame.cooldown:SetHideCountdownNumbers(not show)
+    else
+        -- Pre-Midnight: use Cell's own duration text
+        if show then
+            frame.duration:Show()
+        else
+            frame.duration:Hide()
+        end
     end
 end
 
@@ -676,6 +677,10 @@ function I.CreateAura_BorderIcon(name, parent, borderSize)
     cooldown:SetSwipeTexture(Cell.vars.whiteTexture)
     cooldown:SetSwipeColor(1, 1, 1)
     cooldown:SetHideCountdownNumbers(true)
+    -- Midnight: set abbreviation threshold once at creation (shows "1m" above 60s)
+    if Cell.isMidnight and cooldown.SetCountdownAbbrevThreshold then
+        cooldown:SetCountdownAbbrevThreshold(60)
+    end
     -- disable omnicc
     cooldown.noCooldownCount = true
     -- prevent some addons from adding cooldown text

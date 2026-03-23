@@ -307,7 +307,8 @@ local function UpdateExternals(id, trackByName)
             builtInExternals[name] = true
         end
     end
-    -- Always store by ID for server-side filter matching on Midnight
+    -- Also store by ID (in addition to name when trackByName is true)
+    -- so IsExternalCooldown/IsDefensiveCooldown can match by ID directly
     builtInExternals[id] = true
 end
 
@@ -477,7 +478,8 @@ function I.UpdateDefensives(t)
                         builtInDefensives[name] = true
                     end
                 end
-                -- Always store by ID for server-side filter matching on Midnight
+                -- Also store by ID (in addition to name when trackByName is true)
+    -- so IsExternalCooldown/IsDefensiveCooldown can match by ID directly
                 builtInDefensives[id] = true
             end
         end
