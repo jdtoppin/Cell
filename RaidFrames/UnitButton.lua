@@ -1573,25 +1573,26 @@ local function UnitButton_UpdateDebuffs(self, isFullUpdate)
                         -- Pass-through: C-level DurationObject APIs handle secret values
                         self.indicators.raidDebuffs[i]:SetCooldownFromAura(
                             unit, auraInstanceID, auraInfo.icon, auraInfo.refreshing)
-                        -- Dispel color for secret auras via bracket curves
-                        if auraInfo._hasSecrets and _dispelCurvesReady then
+                        -- Dispel color: border = dispel type color (base), swipe = black
+                        -- Same pattern as regular debuffs in showDebuff
+                        local frame = self.indicators.raidDebuffs[i]
+                        if frame.cooldown and frame.cooldown.SetSwipeColor then
+                            frame.cooldown:SetSwipeColor(0, 0, 0)
+                        end
+                        if auraInfo._hasSecrets and (auraInfo.dispelName == nil) then
+                            -- Non-dispellable secret: red
+                            if frame.border then frame.border:SetColorTexture(1, 0, 0); frame.border:Show() end
+                        elseif auraInfo._hasSecrets and _dispelCurvesReady then
                             local hlColor = _getCurveColor(unit, auraInstanceID, _dispelHighlightCurve)
                             if hlColor then
-                                local r, g, b, a = hlColor:GetRGBA()
-                                -- Pass color directly to C-level APIs (handles secrets)
-                                local frame = self.indicators.raidDebuffs[i]
-                                if frame.border then frame.border:SetColorTexture(r, g, b) end
-                                if frame.cooldown then
-                                    if frame.cooldown.SetSwipeColor then frame.cooldown:SetSwipeColor(r, g, b) end
-                                end
+                                local r, g, b = hlColor:GetRGBA()
+                                if frame.border then frame.border:SetColorTexture(r, g, b); frame.border:Show() end
                             end
-                        elseif auraInfo._hasSecrets and (auraInfo.dispelName == nil) then
-                            -- Non-dispellable secret debuff: red
-                            local frame = self.indicators.raidDebuffs[i]
-                            if frame.border then frame.border:SetColorTexture(1, 0, 0) end
-                            if frame.cooldown and frame.cooldown.SetSwipeColor then
-                                frame.cooldown:SetSwipeColor(1, 0, 0)
-                            end
+                        elseif not auraInfo._hasSecrets and auraInfo.dispelName then
+                            local r, g, b = I.GetDebuffTypeColor(auraInfo.dispelName)
+                            if frame.border then frame.border:SetColorTexture(r, g, b); frame.border:Show() end
+                        else
+                            if frame.border then frame.border:SetColorTexture(1, 0, 0); frame.border:Show() end
                         end
                     else
                         -- Pre-Midnight: standard Lua arithmetic (identical to upstream)
