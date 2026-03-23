@@ -231,6 +231,8 @@ local externals = { -- true: track by name, false: track by id
     ["EVOKER"] = {
         [374227] = true, -- 微风 - Zephyr
         [357170] = true, -- 时间膨胀 - Time Dilation
+        [363534] = true, -- 回溯 - Rewind
+        [360995] = true, -- 翠绿拥抱 - Verdant Embrace
         [378441] = true, -- 时间停止 - Time Stop (pvp)
         [374348] = true, -- 新生光焰 - Renewing blaze
     },
@@ -256,6 +258,7 @@ local externals = { -- true: track by name, false: track by id
         [1022] = true, -- 保护祝福 - Blessing of Protection
         [6940] = true, -- 牺牲祝福 - Blessing of Sacrifice
         [204018] = true, -- 破咒祝福 - Blessing of Spellwarding
+        [1044] = true, -- 自由祝福 - Blessing of Freedom
         [31821] = true, -- 光环掌握 - Aura Mastery
         [210256] = true, -- 庇护祝福 - Blessing of Sanctuary
         [228050] = false, -- 圣盾术 (被遗忘的女王护卫) - Divine Shield
@@ -266,6 +269,7 @@ local externals = { -- true: track by name, false: track by id
     ["PRIEST"] = {
         [33206] = true, -- 痛苦压制 - Pain Suppression
         [47788] = true, -- 守护之魂 - Guardian Spirit
+        [10060] = true, -- 能量灌注 - Power Infusion
         [62618] = true, -- 真言术：障 - Power Word: Barrier
         [213610] = true, -- 神圣守卫 - Holy Ward
         [197268] = true, -- 希望之光 - Ray of Hope
@@ -302,9 +306,9 @@ local function UpdateExternals(id, trackByName)
         if name then
             builtInExternals[name] = true
         end
-    else
-        builtInExternals[id] = true
     end
+    -- Always store by ID for server-side filter matching on Midnight
+    builtInExternals[id] = true
 end
 
 function I.UpdateExternals(t)
@@ -406,6 +410,7 @@ local defensives = { -- true: track by name, false: track by id
         [122278] = true, -- 躯不坏 - Dampen Harm
         [122783] = true, -- 散魔功 - Diffuse Magic
         [125174] = true, -- 业报之触 - Touch of Karma
+        [443113] = true, -- 黑牛之力 - Strength of the Black Ox
     },
 
     ["PALADIN"] = {
@@ -471,9 +476,9 @@ function I.UpdateDefensives(t)
                     if name then
                         builtInDefensives[name] = true
                     end
-                else
-                    builtInDefensives[id] = true
                 end
+                -- Always store by ID for server-side filter matching on Midnight
+                builtInDefensives[id] = true
             end
         end
     end

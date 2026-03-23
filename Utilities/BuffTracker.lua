@@ -496,6 +496,8 @@ local function CreateBuffButton(parent, buff)
     -- chat
     b:HookScript("OnClick", function(self, button, down)
         if button == "RightButton" and (down == GetCVarBool("ActionButtonUseKeyDown")) then
+            -- SendChatMessage is protected during encounters on Midnight
+            if InCombatLockdown() then return end
             local msg = GetUnaffectedString(buff)
             if msg then
                 UpdateSendChannel()

@@ -1881,13 +1881,38 @@ local function HandleBuff(self, auraInfo)
             end
         end
 
+        -- Check if this is the player's own cast (for color differentiation)
+        local isPlayerCast = false
+        if isExternal or isDefensive then
+            if not auraInfo._hasSecrets then
+                -- Non-secret: check sourceUnit directly
+                isPlayerCast = source == "player" or source == "pet"
+            elseif _IsAuraFilteredOut then
+                -- Secret: use |PLAYER suffix on server filters
+                if isExternal then
+                    isPlayerCast = not _IsAuraFilteredOut(unit, auraInstanceID, "HELPFUL|EXTERNAL_DEFENSIVE|PLAYER")
+                end
+                if not isPlayerCast and isDefensive then
+                    isPlayerCast = not _IsAuraFilteredOut(unit, auraInstanceID, "HELPFUL|BIG_DEFENSIVE|PLAYER")
+                end
+                if not isPlayerCast then
+                    isPlayerCast = not _IsAuraFilteredOut(unit, auraInstanceID, "HELPFUL|RAID|PLAYER")
+                end
+            end
+        end
+
+        -- Border color: green for player's own casts, yellow for others
+        local borderR, borderG, borderB = 1, 0.85, 0  -- yellow (default)
+        if isPlayerCast then
+            borderR, borderG, borderB = 0, 0.8, 0  -- green
+        end
+
         if enabledIndicators["defensiveCooldowns"] and isDefensive and self._buffs.defensiveFound < indicatorNums["defensiveCooldowns"] then
             self._buffs.defensiveFound = self._buffs.defensiveFound + 1
             local frame = self.indicators.defensiveCooldowns[self._buffs.defensiveFound]
             if Cell.isMidnight then
                 frame:SetCooldownFromAura(unit, auraInstanceID, icon, auraInfo.refreshing)
-                -- Yellow base, black swipe fills in
-                if frame.border then frame.border:SetColorTexture(1, 0.85, 0); frame.border:Show() end
+                if frame.border then frame.border:SetColorTexture(borderR, borderG, borderB); frame.border:Show() end
                 if frame.cooldown and frame.cooldown.SetSwipeColor then frame.cooldown:SetSwipeColor(0, 0, 0) end
             else
                 frame:SetCooldown(start, duration, nil, icon, count, auraInfo.refreshing)
@@ -1900,7 +1925,7 @@ local function HandleBuff(self, auraInfo)
             local frame = self.indicators.externalCooldowns[self._buffs.externalFound]
             if Cell.isMidnight then
                 frame:SetCooldownFromAura(unit, auraInstanceID, icon, auraInfo.refreshing)
-                if frame.border then frame.border:SetColorTexture(1, 0.85, 0); frame.border:Show() end
+                if frame.border then frame.border:SetColorTexture(borderR, borderG, borderB); frame.border:Show() end
                 if frame.cooldown and frame.cooldown.SetSwipeColor then frame.cooldown:SetSwipeColor(0, 0, 0) end
             else
                 frame:SetCooldown(start, duration, nil, icon, count, auraInfo.refreshing)
@@ -1913,7 +1938,7 @@ local function HandleBuff(self, auraInfo)
             local frame = self.indicators.allCooldowns[self._buffs.allFound]
             if Cell.isMidnight then
                 frame:SetCooldownFromAura(unit, auraInstanceID, icon, auraInfo.refreshing)
-                if frame.border then frame.border:SetColorTexture(1, 0.85, 0); frame.border:Show() end
+                if frame.border then frame.border:SetColorTexture(borderR, borderG, borderB); frame.border:Show() end
                 if frame.cooldown and frame.cooldown.SetSwipeColor then frame.cooldown:SetSwipeColor(0, 0, 0) end
             else
                 frame:SetCooldown(start, duration, nil, icon, count, auraInfo.refreshing)
